@@ -107,6 +107,10 @@ class MssqlSource(Mssql):
         self.fields_map = {}
         self.filters = []
 
+        # 抽取数目和去重丢弃数目统计
+        self.merge_count = 0
+        self.drop_count = 0
+
     def add_map(self, source_name, target_name):
         if source_name not in self.get_current_table_detail():
             return False
@@ -166,12 +170,16 @@ class MssqlSource(Mssql):
                     self.metadata.tables[incremental_record_name]
 
         s = select([self.table]).where(and_(*self.filters))
+
+        merge_count = 0
+        drop_count = 0
         for row in self.conn.execute(s):
             row_dict = dict(row)
             if self.incremental:
                 if session.query(self.incremental_record).filter(
                     self.incremental_record.c.id == row_dict['id']
                 ).count() != 0:
+                    drop_count += 1
                     continue
                 else:
                     ins = self.incremental_record.insert()
@@ -181,6 +189,13 @@ class MssqlSource(Mssql):
                     for target_field, source_field in self.fields_map.items()]
             ins = self.target.table.insert()
             self.target.conn.execute(ins, dict(data))
+            merge_count += 1
+        # 将抽取到的,增量丢弃掉的数据条数保存
+        self.merge_count = merge_count
+        self.drop_count = drop_count
+
+    def merge_completed(self):
+        pass
 
 
 class Migration:
@@ -203,12 +218,12 @@ if __name__ == '__main__':
     source.set_table('fake_data02')
 
     source.add_map('name2', 'name1')
-    source.add_map('age2', 'age1')
     source.add_map('salary2', 'salary1')
     source.add_map('birthday2', 'birthday1')
-    source.add_map('is_human2', 'is_human1')
 
     source.add_filter('birthday2', 'gt', date(2000, 1, 1))
     print(source.fields_map)
     source.merge_to_target()
+    print(source.merge_count)
+    print(source.drop_count)
 
