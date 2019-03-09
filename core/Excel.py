@@ -78,6 +78,7 @@ class Excel:
 
     def merge_to_target(self):
         insert_count = 0
+        drop_count = 0
         max_col = len(self.columns_names)
         if self.incremental:
             max_col += 1
@@ -93,6 +94,7 @@ class Excel:
                 continue
             if self.incremental:
                 if row[len(self.columns_names)].value:
+                    drop_count += 1
                     continue
                 else:
                     row[len(self.columns_names)].value = True
@@ -103,6 +105,7 @@ class Excel:
             insert_count += 1
         self.wb.save(self.file_path)
         self.insert_count = insert_count
+        self.drop_count = drop_count
 
 
 if __name__ == '__main__':

@@ -5,29 +5,25 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.types import Integer, Float, String, Boolean, Date
 from sqlalchemy.exc import NoSuchTableError
 
-type_map_mssql = {
+from core.Mssql import MssqlTarget
+
+type_map_mysql = {
     'int': Integer,
-    'string': String,
+    'string': String(100),
     'float': Float,
     'bool': Boolean,
     'date': Date
 }
 
 
-# Mssql 是 MssqlTarget 和 MssqlSource 的超类
-# 使用Mssql.connect_db()建立自己的数据库连接
-# 使用Mssql.list_table()查看当前数据库的表的列表
-# 使用Mssql.set_table(table_name)设置数据源/目标使用哪张表
-#     并且初始化Mssql.table (类型为sqlalchemy.Table)
-
-
-class Mssql:
-    def __init__(self, username, password, dsn):
+class Mysql:
+    def __init__(self, username, password, host, db):
         self.engine = None
         self.conn = None
         self.username = username
         self.password = password
-        self.dsn = dsn
+        self.host = host
+        self.db = db
         self.metadata = MetaData()
         self.table = None
 
@@ -37,15 +33,11 @@ class Mssql:
     def connect_db(self):
         try:
             self.engine = create_engine(
-                'mssql+pyodbc://{}:{}@{}'.format(
-                    self.username, self.password, self.dsn
-                )
+               'mysql+mysqlconnector://{}:{}@{}/{}'.format(
+                   self.username, self.password, self.host, self.db
+               )
             )
-            Session = sessionmaker(self.engine)
-            self.session = Session()
             self.conn = self.engine.connect()
-            print(self.conn)
-            print(self.engine)
             self.metadata.reflect(bind=self.engine)
 
             return True, '成功连接到数据库'
@@ -74,9 +66,10 @@ class Mssql:
             return self.metadata.tables[table_name]
         columns = [Column('id', Integer, primary_key=True)]
         for field_name, field_type in fields.items():
-            c = Column(field_name, type_map_mssql[field_type])
+            c = Column(field_name, type_map_mysql[field_type])
             columns.append(c)
         table = Table(table_name, self.metadata, *columns)
+        print(self.engine)
         table.create(self.engine)
         return table
 
@@ -94,13 +87,13 @@ class Mssql:
         return {}
 
 
-class MssqlTarget(Mssql):
+class MysqlTarget(Mysql):
     pass
 
 
-class MssqlSource(Mssql):
-    def __init__(self, username, password, dsn, target, incremental=False):
-        super().__init__(username, password, dsn)
+class MysqlSource(Mysql):
+    def __init__(self, username, password, host, db, target, incremental=False):
+        super().__init__(username, password, host, db)
         self.target = target
 
         # 是否开启增量抽取
@@ -202,32 +195,30 @@ class MssqlSource(Mssql):
         pass
 
 
-class Migration:
-    def __init__(self):
-        self.sources = []
-
-    def handle_mssql(self):
-        pass
-
-
 if __name__ == '__main__':
-    username = 'sa'
-    password = '132132qq'
-    dsn = 'a'
-    target = MssqlTarget(username, password, dsn)
-    source = MssqlSource(username, password, dsn, target, incremental=True)
-    target.connect_db()
-    source.connect_db()
-    target.set_table('fake_data01')
-    source.set_table('fake_data02')
+    # target = MssqlTarget('sa', '132132qq', 'a')
+    # result = target.connect_db()
+    # print(result)
+    # target.set_table('fake_data01')
+    #
+    # mysql = MysqlSource('root', '132132qq', 'localhost', 'flask', target)
+    # result = mysql.connect_db()
+    # print(mysql.engine)
+    # print(result)
+    # mysql.set_table('fake_data01')
+    #
+    # mysql.add_map('name1', 'name1')
+    # mysql.add_map('age1', 'age1')
+    # mysql.add_map('salary', 'salary1')
+    # mysql.add_map('birthday1', 'birthday1')
+    # mysql.add_map('is_human', 'is_human1')
+    #
+    # mysql.merge_to_target()
 
-    source.add_map('name2', 'name1')
-    source.add_map('salary2', 'salary1')
-    source.add_map('birthday2', 'birthday1')
+    # mysql = MysqlSource('root', '132132qq', 'localhost', 'flask', None)
+    # result1 = mysql.connect_db()
+    mssql = MssqlTarget('sa', '132132qq', 'a')
+    result2 = mssql.connect_db()
+    print(result2)
 
-    source.add_filter('birthday2', 'gt', date(2000, 1, 1))
-    print(source.fields_map)
-    source.merge_to_target()
-    print(source.merge_count)
-    print(source.drop_count)
 
