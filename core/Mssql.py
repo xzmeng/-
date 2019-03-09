@@ -116,10 +116,10 @@ class MssqlSource(Mssql):
             return False
         if target_name not in self.target.get_current_table_detail():
             return False
-        if target_name not in self.fields_map:
-            self.fields_map[target_name] = source_name
-            return True
-        return False
+        if target_name in self.fields_map:
+            return False
+        self.fields_map[target_name] = source_name
+        return True
 
     # 调用该函数时应能保证输入是有效的，该函数不负责检查输入的正确性
     def add_filter(self, source_name, filter_type, value):

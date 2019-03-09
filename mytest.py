@@ -1,39 +1,26 @@
-from datetime import date
+import datetime
+import random
+
+import pandas as pd
+import numpy as np
 from faker import Faker
-from sqlalchemy import not_
-from sqlalchemy.sql.elements import and_
-from sqlalchemy.sql.expression import exists
-from core.Mssql import MssqlSource
-from sqlalchemy.sql import  select
-from sqlalchemy.orm import sessionmaker
+
+from openpyxl import Workbook
+from openpyxl import load_workbook
 
 
-mssql = MssqlSource('sa', '132132qq', 'a', None)
-mssql.connect_db()
+a = 'hello'
+b = 'el'
 
-mssql.set_table('fake_data01')
-table = mssql.table
+def get_date(d):
+    if isinstance(d, datetime.datetime):
+        return d.date()
+    else:
+        return d
 
-Session = sessionmaker(bind=mssql.engine)
-session = Session()
+a = datetime.datetime(2000, 1, 1).date()
+print(type(a), a)
+print(b)
 
-# s = select([table]).where(
-#     and_(
-#         *[table.c['birthday1'] > date(2000, 1, 1),
-#         table.c['birthday1'] < date(2002, 1, 1)]
-#     )
-# )
-# for row in mssql.conn.execute(s):
-#     print(row['birthday1'], type('birthday1'))
-#     print(dict(row))
-#
-# filter = table.c['name1'].like('%Pope')
-# print(filter, type(filter))
-s = exists(select([table.c.id]).where(table.c.id == 100))
-for r in session.query(mssql.table).filter(table.c.id == 1000):
-    print(r, type(r))
 
-r = session.query(mssql.table).filter(table.c.id == 1000).count()
-print(r, type(r))
 
-print(mssql.list_table())
