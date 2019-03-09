@@ -1,4 +1,6 @@
-from sqlalchemy import create_engine, MetaData, Table, Column
+from datetime import date
+
+from sqlalchemy import create_engine, MetaData, Table, Column, select, and_
 from sqlalchemy.types import Integer, Float, String, Boolean, Date
 from sqlalchemy.exc import NoSuchTableError
 
@@ -89,11 +91,17 @@ class MssqlTarget(Mssql):
 
 
 class MssqlSource(Mssql):
-    def __init__(self, username, password, dsn, target):
+    def __init__(self, username, password, dsn, target, incremental=False):
         super().__init__(username, password, dsn)
         self.target = target
+
+        # 是否开启增量抽取
+        self.incremental = incremental
+        # 保存历史抽取记录
+        self.incremental_record = None
+
         self.fields_map = {}
-        self.filters = {}
+        self.filters = []
 
     def add_map(self, source_name, target_name):
         if source_name not in self.get_current_table_detail():
@@ -106,16 +114,49 @@ class MssqlSource(Mssql):
         return False
 
     # 调用该函数时应能保证输入是有效的，该函数不负责检查输入的正确性
-    def add_filter(self, source_name, fitler):
-        self.filters[source_name] = 'filter'
+    def add_filter(self, source_name, filter_type, value):
         # int, float > = < !=
         # string  like '%filter%' not like
         # date before after equal not equal
         # bool True False
 
+        # float, int, date
+        if filter_type == 'gt':
+            self.filters.append(self.table.c[source_name] > value)
+        # float, int, date
+        elif filter_type == 'ge':
+            self.filters.append(self.table.c[source_name] >= value)
+        # float, int, date
+        elif filter_type == 'lt':
+            self.filters.append(self.table.c[source_name] < value)
+        # float, int, date
+        elif filter_type == 'le':
+            self.filters.append(self.table.c[source_name] <= value)
+        # float, int, bool, string, date
+        elif filter_type == 'eq':
+            self.filters.append(self.table.c[source_name] == value)
+        # string
+        elif filter_type == 'contain':
+            self.filters.append(self.table.c[source_name].like('%{}%'.format(value)))
+        # string
+        elif filter_type == 'notcontain':
+            self.filters.append(~(self.table.c[source_name].like('%{}%'.format(value))))
 
-class Filter:
-    pass
+    def merge_to_target(self):
+        if self.incremental:
+            self.incremental_record = Table(
+                '{}_to_{}'.format(self.table.name, self.target.table.name),
+                Column('id', Integer, primary_key=True)
+            )
+            self.incremental_record.create(self.engine)
+
+        s = select([self.table]).where(and_(*self.filters))
+        ins = self.target.table.insert()
+        for row in self.conn.execute(s):
+            row_dict = dict(row)
+            data = [(target_field, row_dict[source_field])
+                    for target_field, source_field in self.fields_map.items()]
+            self.target.conn.execute(ins, dict(data))
 
 
 class Migration:
@@ -124,7 +165,6 @@ class Migration:
 
     def handle_mssql(self):
         pass
-
 
 
 if __name__ == '__main__':
@@ -144,5 +184,8 @@ if __name__ == '__main__':
     source.add_map('birthday2', 'birthday1')
     source.add_map('is_human2', 'is_human1')
 
+    source.add_filter('birthday2', 'gt', date(2000, 1, 1))
+    source.add_filter('age2', 'lt', 5)
     print(source.fields_map)
+    source.merge_to_target()
 
