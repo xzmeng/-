@@ -148,8 +148,9 @@ def run():
     #     'is_human': 'bool'
     # }
     my_faker = MssqlFaker('sa', '132132qq', 'a')
-    my_faker.gen_fake_data('fake_data01', 1)
-    my_faker.gen_fake_data('fake_data02', 2)
+    my_faker.gen_fake_data('studenta', 1)
+    my_faker.gen_fake_data('studentb', 2)
+
 
 
 def run2():
@@ -166,4 +167,5 @@ def run2():
 
 
 if __name__ == '__main__':
-    run2()
+    run()
+

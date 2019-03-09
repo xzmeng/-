@@ -44,9 +44,9 @@ class Mssql:
             Session = sessionmaker(self.engine)
             self.session = Session()
             self.conn = self.engine.connect()
-            print(self.conn)
+            print(self.session)
             print(self.engine)
-            self.metadata.reflect(bind=self.engine)
+            self.metadata.reflect(self.engine)
 
             return True, '成功连接到数据库'
         except Exception as e:

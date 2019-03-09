@@ -196,29 +196,6 @@ class MysqlSource(Mysql):
 
 
 if __name__ == '__main__':
-    # target = MssqlTarget('sa', '132132qq', 'a')
-    # result = target.connect_db()
-    # print(result)
-    # target.set_table('fake_data01')
-    #
-    # mysql = MysqlSource('root', '132132qq', 'localhost', 'flask', target)
-    # result = mysql.connect_db()
-    # print(mysql.engine)
-    # print(result)
-    # mysql.set_table('fake_data01')
-    #
-    # mysql.add_map('name1', 'name1')
-    # mysql.add_map('age1', 'age1')
-    # mysql.add_map('salary', 'salary1')
-    # mysql.add_map('birthday1', 'birthday1')
-    # mysql.add_map('is_human', 'is_human1')
-    #
-    # mysql.merge_to_target()
-
-    # mysql = MysqlSource('root', '132132qq', 'localhost', 'flask', None)
-    # result1 = mysql.connect_db()
-    mssql = MssqlTarget('sa', '132132qq', 'a')
-    result2 = mssql.connect_db()
-    print(result2)
+    pass
 
 
