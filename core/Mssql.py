@@ -1,6 +1,7 @@
 from datetime import date
 
 from sqlalchemy import create_engine, MetaData, Table, Column, select, and_
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.types import Integer, Float, String, Boolean, Date
 from sqlalchemy.exc import NoSuchTableError
 
@@ -64,6 +65,9 @@ class Mssql:
 
     # fields: 含有 name:type 对的字典
     def create_table(self, table_name, fields):
+        # 如果 指定名字的表已经存在 直接返回该表
+        if table_name in self.list_table():
+            return self.metadata.tables[table_name]
         columns = [Column('id', Integer, primary_key=True)]
         for field_name, field_type in fields.items():
             c = Column(field_name, type_map_mssql[field_type])
@@ -143,19 +147,39 @@ class MssqlSource(Mssql):
             self.filters.append(~(self.table.c[source_name].like('%{}%'.format(value))))
 
     def merge_to_target(self):
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
         if self.incremental:
-            self.incremental_record = Table(
-                '{}_to_{}'.format(self.table.name, self.target.table.name),
-                Column('id', Integer, primary_key=True)
+            incremental_record_name = '{}_to_{}'.format(
+                self.table.name, self.target.table.name
             )
-            self.incremental_record.create(self.engine)
+            if incremental_record_name not in self.list_table():
+
+                self.incremental_record = Table(
+                    incremental_record_name,
+                    self.metadata,
+                    Column('id', Integer, primary_key=True),
+                )
+                self.incremental_record.create(self.engine)
+            else:
+                self.incremental_record = \
+                    self.metadata.tables[incremental_record_name]
 
         s = select([self.table]).where(and_(*self.filters))
-        ins = self.target.table.insert()
         for row in self.conn.execute(s):
             row_dict = dict(row)
+            if self.incremental:
+                if session.query(self.incremental_record).filter(
+                    self.incremental_record.c.id == row_dict['id']
+                ).count() != 0:
+                    continue
+                else:
+                    ins = self.incremental_record.insert()
+                    self.engine.execute(ins, id=row_dict['id'])
+
             data = [(target_field, row_dict[source_field])
                     for target_field, source_field in self.fields_map.items()]
+            ins = self.target.table.insert()
             self.target.conn.execute(ins, dict(data))
 
 
@@ -172,7 +196,7 @@ if __name__ == '__main__':
     password = '132132qq'
     dsn = 'a'
     target = MssqlTarget(username, password, dsn)
-    source = MssqlSource(username, password, dsn, target)
+    source = MssqlSource(username, password, dsn, target, incremental=True)
     target.connect_db()
     source.connect_db()
     target.set_table('fake_data01')
@@ -185,7 +209,6 @@ if __name__ == '__main__':
     source.add_map('is_human2', 'is_human1')
 
     source.add_filter('birthday2', 'gt', date(2000, 1, 1))
-    source.add_filter('age2', 'lt', 5)
     print(source.fields_map)
     source.merge_to_target()
 

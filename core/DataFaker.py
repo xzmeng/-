@@ -50,5 +50,5 @@ if __name__ == '__main__':
     }
 
     my_faker = MssqlFaker('sa', '132132qq', 'a')
-    my_faker.gen_fake_data('fake_data01', 1)
+    # my_faker.gen_fake_data('fake_data01', 1)
     my_faker.gen_fake_data('fake_data02', 2)
