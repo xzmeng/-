@@ -11,7 +11,11 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(955, 453)
+        Dialog.resize(955, 457)
+        font = QtGui.QFont()
+        font.setFamily("微软雅黑")
+        font.setPointSize(14)
+        Dialog.setFont(font)
         self.groupBox = QtWidgets.QGroupBox(Dialog)
         self.groupBox.setGeometry(QtCore.QRect(50, 20, 301, 331))
         self.groupBox.setObjectName("groupBox")
@@ -42,8 +46,17 @@ class Ui_Dialog(object):
         self.pushButton_3.setGeometry(QtCore.QRect(260, 280, 91, 31))
         self.pushButton_3.setObjectName("pushButton_3")
         self.pushButton_4 = QtWidgets.QPushButton(self.groupBox_2)
-        self.pushButton_4.setGeometry(QtCore.QRect(370, 280, 91, 31))
+        self.pushButton_4.setGeometry(QtCore.QRect(380, 280, 91, 31))
         self.pushButton_4.setObjectName("pushButton_4")
+        self.checkBox = QtWidgets.QCheckBox(Dialog)
+        self.checkBox.setGeometry(QtCore.QRect(580, 390, 151, 31))
+        self.checkBox.setObjectName("checkBox")
+        self.lineEdit = QtWidgets.QLineEdit(Dialog)
+        self.lineEdit.setGeometry(QtCore.QRect(160, 380, 191, 31))
+        self.lineEdit.setObjectName("lineEdit")
+        self.label = QtWidgets.QLabel(Dialog)
+        self.label.setGeometry(QtCore.QRect(50, 380, 101, 31))
+        self.label.setObjectName("label")
 
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
@@ -57,4 +70,6 @@ class Ui_Dialog(object):
         self.groupBox_2.setTitle(_translate("Dialog", "抽取策略"))
         self.pushButton_3.setText(_translate("Dialog", "添加策略"))
         self.pushButton_4.setText(_translate("Dialog", "删除策略"))
+        self.checkBox.setText(_translate("Dialog", "采取增量抽取"))
+        self.label.setText(_translate("Dialog", "添加标签"))
 

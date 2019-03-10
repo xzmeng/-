@@ -16,12 +16,15 @@ class Excel:
         self.row_count = self.get_row_count()
         self.fields_map = {}
         self.filters = []
+        self.filters_tuple = []
 
-        self.insert_count = 0
+        self.merge_count = 0
         self.drop_count = 0
 
+        self.tag = None
+
     def __str__(self):
-        return self.file_path
+        return 'Excel: ' + self.file_path
 
     def get_column_names(self):
         column_num = 1
@@ -80,7 +83,7 @@ class Excel:
         return True
 
     def merge_to_target(self):
-        insert_count = 0
+        merge_count = 0
         drop_count = 0
         max_col = len(self.columns_names)
         if self.incremental:
@@ -105,9 +108,9 @@ class Excel:
                     for target_name, source_name in self.fields_map.items()]
             datadict = dict(data)
             self.target.conn.execute(ins, datadict)
-            insert_count += 1
+            merge_count += 1
         self.wb.save(self.file_path)
-        self.insert_count = insert_count
+        self.merge_count = merge_count
         self.drop_count = drop_count
 
 

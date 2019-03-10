@@ -188,6 +188,8 @@ def drop():
     mssql.connect_db()
     mssql.drop_table(config_mssql['fake_table_name'])
     mssql.drop_table(config_mssql['fake_target_name'])
+    mssql.drop_table(config_mssql['fake_table_name'] + '_to_'
+                     + config_mssql['fake_target_name'])
 
     mysql = Mysql(config_mysql['username'],
                   config_mysql['password'],
@@ -195,7 +197,8 @@ def drop():
                   config_mysql['db'])
     mysql.connect_db()
     mysql.drop_table(config_mysql['fake_table_name'])
-
+    mysql.drop_table(config_mysql['fake_table_name'] + '_to_'
+                     + config_mssql['fake_target_name'])
     if os.path.exists(config_excel['file_path']):
         os.remove(config_excel['file_path'])
 

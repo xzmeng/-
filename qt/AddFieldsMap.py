@@ -2,6 +2,8 @@ import datetime
 
 from PyQt5.QtWidgets import QDialog, QTableWidgetItem, QApplication, QMessageBox, QComboBox
 
+from core.Excel import Excel
+from core.Mongodb import Mongodb
 from core.Mssql import MssqlTarget, MssqlSource
 from qt.UI.AddFieldsMap import Ui_Dialog as Ui_AddFieldsMap
 
@@ -17,6 +19,7 @@ class AddFieldsMap(QDialog, Ui_AddFieldsMap):
         self.pushButton_4.clicked.connect(self.remove_filter)
         self.buttonBox.accepted.connect(self.submit)
         self.buttonBox.rejected.connect(self.reject)
+        self.checkBox.setChecked(False)
 
         self.show_fields_map()
         self.show_filters()
@@ -24,6 +27,14 @@ class AddFieldsMap(QDialog, Ui_AddFieldsMap):
         pass
 
     def show_fields_map(self):
+        if self.source.tag:
+            self.lineEdit.setText(self.source.tag)
+
+        if self.source.incremental:
+            self.checkBox.setChecked(True)
+        else:
+            self.checkBox.setChecked(False)
+
         fields_map = self.source.fields_map
         self.tableWidget.setColumnCount(2)
         self.tableWidget.setHorizontalHeaderLabels(
@@ -130,6 +141,7 @@ class AddFieldsMap(QDialog, Ui_AddFieldsMap):
             if target_name in fields_map:
                 self.alarm('第{}行存在到目标字段"{}"的重复映射!'.format(
                     row_num + 1, target_name))
+                return False
             fields_map[target_name] = source_name
         if not fields_map:
             self.alarm('至少有一个字段映射!')
@@ -175,7 +187,123 @@ class AddFieldsMap(QDialog, Ui_AddFieldsMap):
         self.source.filters_tuple = filters_tuple
         return True
 
+    def check_filters_mongo_excel(self):
+        row_count = self.tableWidget_2.rowCount()
+        filters = []
+        for row_num in range(row_count):
+            source_name = self.tableWidget_2.item(row_num, 0).text()
+            field_type = self.tableWidget_2.cellWidget(row_num, 1).currentText()
+            filter_type_zh = self.tableWidget_2.cellWidget(row_num, 2).currentText()
+            filter_type = FilterTypeComboBox.chinese_to_type[filter_type_zh]
+            filter_value_text = self.tableWidget_2.item(row_num, 3).text()
+            try:
+                if field_type == 'str':
+                    filter_value = filter_value_text
+                elif field_type == 'int':
+                    filter_value = int(filter_value_text)
+                elif field_type == 'float':
+                    filter_value = float(filter_value_text)
+                elif field_type == 'bool':
+                    filter_value = True if filter_value_text.lower() == 'true' else False
+                elif field_type == 'datetime':
+                    filter_value = datetime.datetime(*[int(x) for x in filter_value_text.split('-')])
+            except Exception as e:
+                self.alarm(str(e))
+                return False
+            filters.append((source_name, filter_type, filter_value))
+        print(filters)
+        for field_filter in filters:
+            if isinstance(self.source, Mongodb):
+                self.source.filters = {}
+            if isinstance(self.source, Excel):
+                self.source.filters = []
+            self.source.add_filter(*field_filter)
+        filters_tuple = [(str(x), str(y), str(z)) for x, y, z in filters]
+        self.source.filters_tuple = filters_tuple
+        return True
+
+    def check_fields_map_mongo(self):
+        target_detail = self.source.target.get_current_table_detail()
+        fields_map = {}
+        row_count = self.tableWidget.rowCount()
+        for row_num in range(row_count):
+            source_name = self.tableWidget.item(row_num, 0).text()
+            target_name = self.tableWidget.item(row_num, 1).text()
+            source_name, target_name = source_name.strip(), target_name.strip()
+            if not source_name or not target_name:
+                continue
+            if target_name not in target_detail:
+                self.alarm('第{}行目标字段名"{}"在目标表中不存在!'.format(
+                    row_num + 1, target_name))
+                return False
+            if target_name in fields_map:
+                self.alarm('第{}行存在到目标字段"{}"的重复映射!'.format(
+                    row_num + 1, target_name))
+                return False
+            fields_map[target_name] = source_name
+        if not fields_map:
+            self.alarm('至少有一个字段映射!')
+            return False
+        else:
+            self.source.fields_map = fields_map
+            return True
+
+    def check_fields_map_excel(self):
+        source_columns = self.source.get_column_names()
+        target_detail = self.source.target.get_current_table_detail()
+        fields_map = {}
+        row_count = self.tableWidget.rowCount()
+        for row_num in range(row_count):
+            source_name = self.tableWidget.item(row_num, 0).text()
+            target_name = self.tableWidget.item(row_num, 1).text()
+            if source_name not in source_columns:
+                self.alarm('第{}行源字段名"{}"在源表中不存在!'.format(
+                    row_num + 1, source_name))
+                return False
+            if target_name not in target_detail:
+                self.alarm('第{}行目标字段名"{}"在目标表中不存在!'.format(
+                    row_num + 1, target_name))
+                return False
+            if target_name in fields_map:
+                self.alarm('第{}行存在到目标字段"{}"的重复映射!'.format(
+                    row_num + 1, target_name))
+                return False
+            fields_map[target_name] = source_name
+        if not fields_map:
+            self.alarm('至少有一个字段映射!')
+            return False
+        else:
+            self.source.fields_map = fields_map
+            return True
+
     def submit(self):
+        tag = self.lineEdit.text().strip()
+        if not tag:
+            self.source.tag = None
+        else:
+            self.source.tag = tag
+
+        if self.checkBox.isChecked():
+            self.source.incremental = True
+        else:
+            self.source.incremental = False
+
+        if isinstance(self.source, Mongodb):
+            if self.check_fields_map_mongo() and self.check_filters_mongo_excel():
+                self.accept()
+                return
+            else:
+                self.alarm('策略存在错误!')
+                return
+
+        if isinstance(self.source, Excel):
+            if self.check_fields_map_excel() and self.check_filters_mongo_excel():
+                self.accept()
+                return
+            else:
+                self.alarm('策略存在错误!')
+                return
+
         if self.check_fields_map() and self.check_filters():
             self.accept()
 

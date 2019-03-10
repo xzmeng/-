@@ -131,6 +131,8 @@ class MssqlSource(Mssql):
         self.merge_count = 0
         self.drop_count = 0
 
+        self.tag = None
+
     def add_map(self, source_name, target_name):
         if source_name not in self.get_current_table_detail():
             return False

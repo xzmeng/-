@@ -2,11 +2,11 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QDialog, QApplication, QMessageBox
 
 from qt.UI.SetTarget import Ui_Dialog as Ui_AddMssqlSource
-from core.Mssql import MssqlTarget, MssqlSource
+from core.Mssql import MssqlSource
+from config import  config_mssql
 
 
 class AddMssqlSource(QDialog, Ui_AddMssqlSource):
-    # signal_target_changed = pyqtSlot()
 
     def __init__(self, parent, target=None):
         super().__init__(parent)
@@ -14,9 +14,9 @@ class AddMssqlSource(QDialog, Ui_AddMssqlSource):
         self.textEdit.setReadOnly(True)
         self.textEdit_2.setReadOnly(True)
 
-        self.lineEdit.setText('sa')
-        self.lineEdit_2.setText('132132qq')
-        self.lineEdit_3.setText('a')
+        self.lineEdit.setText(config_mssql['username'])
+        self.lineEdit_2.setText(config_mssql['password'])
+        self.lineEdit_3.setText(config_mssql['dsn'])
         self.target = target
         self.source = None
 

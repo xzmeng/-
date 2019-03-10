@@ -27,6 +27,7 @@ class Mysql:
         self.metadata = MetaData()
         self.table = None
 
+
     def __str__(self):
         if self.table is not None:
             return self.table.name
@@ -123,6 +124,8 @@ class MysqlSource(Mysql):
         # 抽取数目和去重丢弃数目统计
         self.merge_count = 0
         self.drop_count = 0
+
+        self.tag = None
 
     def add_map(self, source_name, target_name):
         if source_name not in self.get_current_table_detail():

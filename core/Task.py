@@ -25,8 +25,23 @@ class Task:
             print('merging {}...'.format(str(source)))
             source.merge_to_target()
             self.stats.append(
-                (str(source), source.merge_count, source.drop_count)
+                (str(source), source.tag, source.merge_count, source.drop_count)
             )
+
+    def merge_completed(self):
+        if not self.stats:
+            return None, None
+        table_info = [(stat[0], stat[2]) for stat in self.stats]
+        tag_info = {'未标记': 0}
+        for stat in self.stats:
+            if stat[1] is not None:
+                if stat[1] not in tag_info:
+                    tag_info[stat[1]] = stat[2]
+                else:
+                    tag_info[stat[1]] += stat[2]
+            else:
+                tag_info['未标记'] += stat[2]
+        return table_info, tag_info
 
 
 def test_task():

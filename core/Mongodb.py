@@ -22,10 +22,16 @@ class Mongodb:
                                                          target_table_name)
         self.fields_map = {}
         self.filters = {}
+        self.filters_tuple = []
+
+        self.drop_count = 0
+        self.merge_count = 0
+
+        self.tag = None
 
     def __str__(self):
         if self.db and self.collection:
-            return 'Mongo:{}.{}'.format(self.db, self.collection)
+            return 'Mongo:{}.{}'.format(self.db.name, self.collection.name)
         else:
             return 'Mongo'
 
@@ -73,9 +79,12 @@ class Mongodb:
             }
 
     def merge_to_target(self):
+        merge_count = 0
+        drop_count = 0
         for row in self.collection.find(self.filters):
             if self.incremental:
                 if row.get(self.incremental_record_name):
+                    drop_count += 1
                     continue
                 else:
                     self.collection.update_one(
@@ -90,6 +99,9 @@ class Mongodb:
                 continue
             ins = self.target.table.insert()
             self.target.conn.execute(ins, dict(data))
+            merge_count += 1
+        self.merge_count = merge_count
+        self.drop_count = drop_count
 
 
 if __name__ == '__main__':

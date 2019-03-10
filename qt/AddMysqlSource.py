@@ -2,7 +2,8 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QDialog, QApplication, QMessageBox
 
 from qt.UI.AddMysqlSource import Ui_Dialog as Ui_AddMysqlSource
-from core.Mysql import MssqlTarget, MysqlSource
+from core.Mysql import MysqlSource
+from config import config_mysql
 
 
 class AddMysqlSource(QDialog, Ui_AddMysqlSource):
@@ -14,10 +15,10 @@ class AddMysqlSource(QDialog, Ui_AddMysqlSource):
         self.textEdit.setReadOnly(True)
         self.textEdit_2.setReadOnly(True)
 
-        self.lineEdit.setText('root')
-        self.lineEdit_2.setText('132132qq')
-        self.lineEdit_3.setText('localhost')
-        self.lineEdit_4.setText('flask')
+        self.lineEdit.setText(config_mysql['username'])
+        self.lineEdit_2.setText(config_mysql['password'])
+        self.lineEdit_3.setText(config_mysql['host'])
+        self.lineEdit_4.setText(config_mysql['db'])
         self.target = target
         self.source = None
 

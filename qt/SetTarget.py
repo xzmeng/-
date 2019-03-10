@@ -1,6 +1,7 @@
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QDialog, QApplication, QMessageBox
 
+from qt.CreateTable import CreateTable
 from qt.UI.SetTarget import Ui_Dialog as Ui_SetTarget
 from core.Mssql import MssqlTarget
 
@@ -13,6 +14,7 @@ class SetTarget(QDialog, Ui_SetTarget):
         self.setupUi(self)
         self.textEdit.setReadOnly(True)
         self.textEdit_2.setReadOnly(True)
+        self.pushButton_2.setEnabled(False)
 
         self.lineEdit.setText('sa')
         self.lineEdit_2.setText('132132qq')
@@ -23,6 +25,7 @@ class SetTarget(QDialog, Ui_SetTarget):
             self.list_table()
 
         self.pushButton.clicked.connect(self.connect_db)
+        self.pushButton_2.clicked.connect(self.create_table)
         self.comboBox.currentTextChanged.connect(
             self.show_table_detail
         )
@@ -42,6 +45,7 @@ class SetTarget(QDialog, Ui_SetTarget):
         self.textEdit.setText(msg)
         if ok:
             self.target = target
+            self.pushButton_2.setEnabled(True)
             self.list_table()
         else:
             self.target = None
@@ -73,6 +77,12 @@ class SetTarget(QDialog, Ui_SetTarget):
             table_info.append(line)
         text = '\n'.join(table_info)
         self.textEdit_2.setText(text)
+
+    def create_table(self):
+        create_table = CreateTable(self, self.target)
+        result = create_table.exec_()
+        if result:
+            self.comboBox.addItem(create_table.table_name)
 
     def submit(self):
         if self.target is None:
