@@ -1,12 +1,13 @@
 import datetime
+import os
 import random
-
+import pymongo
 from openpyxl import Workbook, load_workbook
-
+from core.Mongodb import Mongodb
 from core.Mssql import Mssql
 from faker import Faker
-
 from core.Mysql import Mysql
+from config import config_mssql, config_mysql, config_excel, config_mongodb
 
 fake = Faker()
 
@@ -16,15 +17,15 @@ class MssqlFaker:
         self.mssql = Mssql(username, password, dsn)
         self.mssql.connect_db()
 
-    def gen_fake_data(self, table_name, table_id, insert_count=100):
+    def gen_fake_data(self, table_name, field_suffix, insert_count=100):
         self.mssql.connect_db()
         fields_pair = [['name', 'string'],
                        ['age', 'int'],
                        ['salary', 'float'],
-                       ['birthday', 'date'],
+                       ['birthday', 'datetime'],
                        ['is_human', 'bool']]
         for pair in fields_pair:
-            pair[0] += str(table_id)
+            pair[0] += ('_' + field_suffix)
         print(fields_pair)
         fields = dict(fields_pair)
 
@@ -36,19 +37,19 @@ class MssqlFaker:
                 fields_pair[0][0]: fake.name(),
                 fields_pair[1][0]: random.randint(1, 89),
                 fields_pair[2][0]: random.randint(10000, 20000) / 100,
-                fields_pair[3][0]: datetime.date(random.randint(1980, 2010, ),
-                                                 random.randint(1, 12),
-                                                 random.randint(1, 28)),
+                fields_pair[3][0]: datetime.datetime(random.randint(1980, 2010, ),
+                                                     random.randint(1, 12),
+                                                     random.randint(1, 28)),
                 fields_pair[4][0]: True if random.randint(0, 1) == 1 else False
-            } for i in range(insert_count)]
+            } for _ in range(insert_count)]
         )
 
 
 class ExcelFaker:
-    def __init__(self):
-        pass
+    def __init__(self, file_path):
+        self.file_path = file_path
 
-    def gen_fake_data(self, file_name='data.xlsx', insert_count=100):
+    def gen_fake_data(self, insert_count=100):
         wb = Workbook()
         ws = wb.active
         ws.title = '学生信息表'
@@ -74,10 +75,11 @@ class ExcelFaker:
                 random.randint(1, 28)
             )
             row[5].value = True if random.randint(0, 1) > 0 else False
-        wb.save(file_name)
+        else:
+            wb.save(self.file_path)
 
-    def append_fake_data(self, file_name='data.xlsx', insert_count=100):
-        wb = load_workbook(file_name)
+    def append_fake_data(self, insert_count=100):
+        wb = load_workbook(self.file_path)
         ws = wb.active
         row_num = 2
         last_id = 0
@@ -104,7 +106,7 @@ class ExcelFaker:
                 random.randint(1, 28)
             )
             row[5].value = True if random.randint(0, 1) > 0 else False
-        wb.save(file_name)
+        wb.save(self.file_path)
 
 
 class MysqlFaker:
@@ -112,15 +114,15 @@ class MysqlFaker:
         self.mysql = Mysql(username, password, host, db)
         self.mysql.connect_db()
 
-    def gen_fake_data(self, table_name, table_id, insert_count=100):
+    def gen_fake_data(self, table_name, field_suffix, insert_count=100):
         self.mysql.connect_db()
         fields_pair = [['name', 'string'],
                        ['age', 'int'],
                        ['salary', 'float'],
-                       ['birthday', 'date'],
+                       ['birthday', 'datetime'],
                        ['is_human', 'bool']]
         for pair in fields_pair:
-            pair[0] += str(table_id)
+            pair[0] += ('_' + field_suffix)
         print(fields_pair)
         fields = dict(fields_pair)
 
@@ -132,40 +134,75 @@ class MysqlFaker:
                 fields_pair[0][0]: fake.name(),
                 fields_pair[1][0]: random.randint(1, 89),
                 fields_pair[2][0]: random.randint(10000, 20000) / 100,
-                fields_pair[3][0]: datetime.date(random.randint(1980, 2010, ),
-                                                 random.randint(1, 12),
-                                                 random.randint(1, 28)),
+                fields_pair[3][0]: datetime.datetime(random.randint(1980, 2010, ),
+                                                     random.randint(1, 12),
+                                                     random.randint(1, 28)),
                 fields_pair[4][0]: True if random.randint(0, 1) == 1 else False
-            } for i in range(insert_count)])
+            } for _ in range(insert_count)])
 
 
-def run():
-    # fields = {
-    #     'name': 'string',
-    #     'age': 'int',
-    #     'salary': 'float',
-    #     'birthday': 'date',
-    #     'is_human': 'bool'
-    # }
-    my_faker = MssqlFaker('sa', '132132qq', 'a')
-    my_faker.gen_fake_data('studenta', 1)
-    my_faker.gen_fake_data('studentb', 2)
+class MongodbFaker:
+    def __init__(self, db='fake', collection='fake_mongo'):
+        self.mongodb = Mongodb(db, collection, None)
+
+    def gen_fake_data(self, collection_name='fake_mongo',
+                      insert_count=100):
+        collection = self.mongodb.db[collection_name]
+        for i in range(insert_count):
+            collection.insert_one(
+                {'id': i,
+                 'name_mongo': fake.name(),
+                 'age_mongo': random.randint(1, 99),
+                 'salary_mongo': random.randint(10000, 20000) / 100,
+                 'birthday_mongo': datetime.datetime(random.randint(1980, 2010),
+                                                     random.randint(1, 12),
+                                                     random.randint(1, 28)),
+                 'is_human_mongo': True if random.randint(0, 1) > 0 else False}
+            )
 
 
+def create():
+    mssql_faker = MssqlFaker(config_mssql['username'],
+                             config_mssql['password'],
+                             config_mssql['dsn'])
+    mssql_faker.gen_fake_data(config_mssql['fake_table_name'], 'mssql')
+    mssql_faker.gen_fake_data(config_mssql['fake_target_name'], 'mssql')
 
-def run2():
-    # fields = {
-    #     'name': 'string',
-    #     'age': 'int',
-    #     'salary': 'float',
-    #     'birthday': 'date',
-    #     'is_human': 'bool'
-    # }
-    my_faker = MysqlFaker('root', '132132qq', 'localhost', 'flask')
-    my_faker.gen_fake_data('fake_data01', 1)
-    my_faker.gen_fake_data('fake_data02', 2)
+    mysql_faker = MysqlFaker(config_mysql['username'],
+                             config_mysql['password'],
+                             config_mysql['host'],
+                             config_mysql['db'])
+    mysql_faker.gen_fake_data(config_mysql['fake_table_name'], 'mysql')
+
+    excel_faker = ExcelFaker(file_path=config_excel['file_path'])
+    excel_faker.gen_fake_data()
+
+    mongo_faker = MongodbFaker(config_mongodb['fake_db'])
+    mongo_faker.gen_fake_data(config_mongodb['fake_collection'])
+
+
+def drop():
+    mssql = Mssql(config_mssql['username'],
+                  config_mssql['password'],
+                  config_mssql['dsn'])
+    mssql.connect_db()
+    mssql.drop_table(config_mssql['fake_table_name'])
+    mssql.drop_table(config_mssql['fake_target_name'])
+
+    mysql = Mysql(config_mysql['username'],
+                  config_mysql['password'],
+                  config_mysql['host'],
+                  config_mysql['db'])
+    mysql.connect_db()
+    mysql.drop_table(config_mysql['fake_table_name'])
+
+    if os.path.exists(config_excel['file_path']):
+        os.remove(config_excel['file_path'])
+
+    mongo = pymongo.MongoClient()
+    mongo.drop_database(config_mongodb['fake_db'])
 
 
 if __name__ == '__main__':
-    run()
-
+    drop()
+    create()

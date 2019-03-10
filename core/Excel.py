@@ -20,6 +20,9 @@ class Excel:
         self.insert_count = 0
         self.drop_count = 0
 
+    def __str__(self):
+        return self.file_path
+
     def get_column_names(self):
         column_num = 1
         column_names = []

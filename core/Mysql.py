@@ -1,8 +1,8 @@
 from datetime import date
 
-from sqlalchemy import create_engine, MetaData, Table, Column, select, and_
+from sqlalchemy import create_engine, MetaData, Table, Column, select, and_, DateTime
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.types import Integer, Float, String, Boolean, Date
+from sqlalchemy.types import Integer, Float, String, Boolean
 from sqlalchemy.exc import NoSuchTableError
 
 from core.Mssql import MssqlTarget
@@ -12,7 +12,7 @@ type_map_mysql = {
     'string': String(100),
     'float': Float,
     'bool': Boolean,
-    'date': Date
+    'datetime': DateTime
 }
 
 
@@ -26,6 +26,12 @@ class Mysql:
         self.db = db
         self.metadata = MetaData()
         self.table = None
+
+    def __str__(self):
+        if self.table is not None:
+            return self.table.name
+        else:
+            return 'Mysql'
 
     def is_connected(self):
         return self.conn is not None
@@ -72,6 +78,15 @@ class Mysql:
         print(self.engine)
         table.create(self.engine)
         return table
+
+    def drop_table(self, table_name):
+        if table_name in self.list_table():
+            try:
+                self.metadata.tables[table_name].drop(self.engine)
+                return True
+            except Exception as e:
+                print(e)
+                return False
 
     def get_table_detail(self, table_name):
         fields = {}
@@ -184,6 +199,8 @@ class MysqlSource(Mysql):
 
             data = [(target_field, row_dict[source_field])
                     for target_field, source_field in self.fields_map.items()]
+            if not data:
+                continue
             ins = self.target.table.insert()
             self.target.conn.execute(ins, dict(data))
             merge_count += 1
