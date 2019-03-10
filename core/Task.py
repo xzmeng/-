@@ -9,6 +9,7 @@ from core.DataFaker import drop, create
 class Task:
     def __init__(self):
         self.sources = []
+        self.stats = []
 
     def add_source(self, source):
         self.sources.append(source)
@@ -23,6 +24,9 @@ class Task:
         for source in self.sources:
             print('merging {}...'.format(str(source)))
             source.merge_to_target()
+            self.stats.append(
+                (str(source), source.merge_count, source.drop_count)
+            )
 
 
 def test_task():

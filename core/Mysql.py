@@ -118,6 +118,7 @@ class MysqlSource(Mysql):
 
         self.fields_map = {}
         self.filters = []
+        self.filters_tuple = []
 
         # 抽取数目和去重丢弃数目统计
         self.merge_count = 0
