@@ -5,6 +5,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.types import Integer, Float, String, Boolean
 from sqlalchemy.exc import NoSuchTableError
 
+
+# 主要用于输入一个字段的类型时映射到其应该在ORM中的表示
 type_map_mssql = {
     'int': Integer,
     'string': String,
@@ -18,9 +20,9 @@ type_map_mssql = {
 # 使用Mssql.connect_db()建立自己的数据库连接
 # 使用Mssql.list_table()查看当前数据库的表的列表
 # 使用Mssql.set_table(table_name)设置数据源/目标使用哪张表
-#     并且初始化Mssql.table (类型为sqlalchemy.Table)
+# 并且初始化Mssql.table (类型为sqlalchemy.Table)
 
-
+# 具体细节涉及到了SQLAlchemy,可以查看其文档
 class Mssql:
     def __init__(self, username, password, dsn):
         self.engine = None
@@ -86,6 +88,7 @@ class Mssql:
         table.create(self.engine)
         return table
 
+    # 删除表
     def drop_table(self, table_name):
         if table_name in self.list_table():
             try:
@@ -95,6 +98,7 @@ class Mssql:
                 print(e)
                 return False
 
+    # 获取表的详细信息，返回字段名和字段类型的字典
     def get_table_detail(self, table_name):
         fields = {}
         table = self.metadata.tables.get(table_name)
@@ -124,6 +128,7 @@ class MssqlSource(Mssql):
         self.incremental_record = None
 
         self.fields_map = {}
+        # 策略
         self.filters = []
         self.filters_tuple = []
 
@@ -131,8 +136,10 @@ class MssqlSource(Mssql):
         self.merge_count = 0
         self.drop_count = 0
 
+        # 用户自定义添加的标签
         self.tag = None
 
+    # 添加策略
     def add_map(self, source_name, target_name):
         if source_name not in self.get_current_table_detail():
             return False
@@ -142,6 +149,12 @@ class MssqlSource(Mssql):
             return False
         self.fields_map[target_name] = source_name
         return True
+
+    # 应该先看一下SQLAlchemy的查询语法, 下面self.table.c[source_name] > value
+    # 会生成一个查询条件的对象，把所有的这些条件添加到一个列表中,最后执行时
+    # 会全部自动转换成响应的SQL语句
+    # 如 s = select([self.table]).where(and_(*self.filters))
+    # self.conn.execute(s) 会返回self.table表中所有符合要求的数据行
 
     # 调用该函数时应能保证输入是有效的，该函数不负责检查输入的正确性
     def add_filter(self, source_name, filter_type, value):
@@ -172,6 +185,7 @@ class MssqlSource(Mssql):
         elif filter_type == 'notcontain':
             self.filters.append(~(self.table.c[source_name].like('%{}%'.format(value))))
 
+    # 执行抽取操作
     def merge_to_target(self):
         Session = sessionmaker(bind=self.engine)
         session = Session()
@@ -180,33 +194,39 @@ class MssqlSource(Mssql):
                 self.table.name, self.target.table.name
             )
             if incremental_record_name not in self.list_table():
-
+                # 如果开启了增量抽取并且源数据库中没有记录表，则创建
                 self.incremental_record = Table(
                     incremental_record_name,
                     self.metadata,
                     Column('id', Integer, primary_key=True),
                 )
                 self.incremental_record.create(self.engine)
+                # 如果已经有了就拿出来用
             else:
                 self.incremental_record = \
                     self.metadata.tables[incremental_record_name]
 
+        # 构建查询语句
         s = select([self.table]).where(and_(*self.filters))
 
         merge_count = 0
         drop_count = 0
+        # 执行查询语句
         for row in self.conn.execute(s):
             row_dict = dict(row)
             if self.incremental:
+                # 是否在增量记录表中，在就丢掉
                 if session.query(self.incremental_record).filter(
                     self.incremental_record.c.id == row_dict['id']
                 ).count() != 0:
                     drop_count += 1
                     continue
+                # 不在就加进去
                 else:
                     ins = self.incremental_record.insert()
                     self.engine.execute(ins, id=row_dict['id'])
 
+            # 将目标名称和源数据建立字典映射，方便执行插入语句execute(ins, **kwargs)
             data = [(target_field, row_dict[source_field])
                     for target_field, source_field in self.fields_map.items()]
             if not data:

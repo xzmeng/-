@@ -1,4 +1,5 @@
-
+# 请把数据库的配置信息全部填在这里
+# DataFaker.py会自动生成测试数据
 
 config_mssql = {
     'username': 'sa',

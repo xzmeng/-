@@ -1,0 +1,11 @@
+1.SQL Server请配置好sa账户和DSN, MongoDB请安装4.06 Community
+并且全部采取默认安装(默认没有密码)
+
+2. pip install -i https://pypi.douban.com/simple -r requirements.txt
+   安装依赖的库, SQLAlchemy必须1.2.11版本
+
+3. 在config.py 中填入你的数据库信息
+
+4. python setup.py 创建测试数据库
+
+5. python run.py 运行应用

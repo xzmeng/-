@@ -1,0 +1,35 @@
+1.介绍:
+功能和界面是完全分离的所有功能在core中实现,界面在qt中实现。功能上主要
+使用到了SQLAlchemy ORM来处理各种与数据库的交互,包括将SQL Server
+和MySQL中的表映射成Python中能够操作的对象(SQLAlchemy.Table),对表进行
+CRUD操作等。GUI界面使用了PyQt5。所有的测试都是基于数据和用户的选择是有
+效的情况下做的，对于非法操作很可能会使软件崩溃，恕工作量限制不能一一覆盖。
+2.项目结构:
+core
+|-Myssql.py      实现添加SQL Server数据源和数据目标的添加。
+|-Mysql.py       实现Mysql数据源的添加
+|-Mongodb.py     实现Mongodb数据源的添加
+|-Excel.py       实现Excel数据源的添加
+|-DataFaker.py   伪造测试数据并且填充数据库
+|-Task.py        执行任务，统计数据
+|-MergeTest.py   测试(无GUI界面)
+qt
+|-UI                 该文件夹下保存的*.ui使用desinger生成的界面,
+|                    使用pyuic5可以将它们转换成*.py,直接在代码里使用。
+|-MainWindow.py      主界面
+|-SetTarget.py       添加SQL Server数据目标界面
+|-CreateTable.py     创建新的表
+|-AddMssqlSource.py  添加SQL Server数据源
+|-AddMysqlSource.py  添加Mysql数据源
+|-AddExcelSource.py  添加Excel数据源
+|-AddMongoSource.py  添加MongoDB数据源
+|-AddFieldsMap.py    添加字段映射和抽取策略
+|-Plot.py            图标显示抽取结果
+|-convert.py         开发工程中用到的,将*.ui转换为.*py
+config.py            配置文件
+3.具体的解释请看注释。
+Mssql和Mysql大部分实现相同, Excel和MongoDB改动较多。
+几个类都实现了相同的接口:
+add_map()         添加映射
+add_filter()      添加策略
+merge_to_target() 执行抽取任务

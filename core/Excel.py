@@ -26,6 +26,7 @@ class Excel:
     def __str__(self):
         return 'Excel: ' + self.file_path
 
+    # 获取行名称，用于源字段名合法性检查
     def get_column_names(self):
         column_num = 1
         column_names = []
@@ -38,6 +39,7 @@ class Excel:
                 break
         return column_names
 
+    # 获取数据行数
     def get_row_count(self):
         row_num = 2
         row_count = 0
@@ -60,6 +62,7 @@ class Excel:
         self.fields_map[target_name] = source_name
         return True
 
+    # 一种策略为一个函数,符合策略函数返回真
     def add_filter(self, source_name, filter_type, value):
         if filter_type == 'gt':
             self.filters.append(lambda datadict: datadict[source_name] > value)
@@ -76,6 +79,7 @@ class Excel:
         elif filter_type == 'notcontain':
             self.filters.append(lambda datadict: value not in datadict[source_name])
 
+    # 对所给数据执行所有策略函数，全部通过则返回真
     def apply_filter(self, datadict):
         for filter_ in self.filters:
             if not filter_(datadict):

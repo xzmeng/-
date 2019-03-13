@@ -6,7 +6,10 @@ from sqlalchemy.types import Integer, Float, String, Boolean
 from sqlalchemy.exc import NoSuchTableError
 
 from core.Mssql import MssqlTarget
+# 除了连接数据库方式其他内容基本和Mssql相同, 可以考虑将两个类合并
 
+
+# 主要用于输入一个字段的类型时映射到其应该在ORM中的表示
 type_map_mysql = {
     'int': Integer,
     'string': String(100),

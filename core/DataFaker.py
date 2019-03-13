@@ -11,6 +11,8 @@ from config import config_mssql, config_mysql, config_excel, config_mongodb
 
 fake = Faker()
 
+# 这个文件里的是各种生成生成测试数据的
+
 
 class MssqlFaker:
     def __init__(self, username, password, dsn):
